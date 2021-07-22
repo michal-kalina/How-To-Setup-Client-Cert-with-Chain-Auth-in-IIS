@@ -23,7 +23,7 @@ The script will output all crt, pfx files into `Out` dir.
 Some scripts will be also automatically installed to Local-Machine and Current-User certificate stores.
 
 ## Configure hosts file
-1. Run `Notepad.exe` as Administrator and open from `%systemroot%\System32\drivers\etc` a host file. **(Use All Files (*.*))**
+1. Run `Notepad.exe` as Administrator and open from `%systemroot%\System32\drivers\etc` a host file. **(Use All Files (\*.\*))**
 2. Add entry 127.0.0.1 and FQDN of your PC (e.g. dev-example.contoso.com)
 ```txt
     127.0.0.1    dev-example.contoso.com
