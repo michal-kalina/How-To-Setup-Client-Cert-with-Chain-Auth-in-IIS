@@ -1,0 +1,16 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "PowerShell: Run generate-cert.ps1 script",
+            "type": "PowerShell",
+            "request": "launch",
+            "script": "${workspaceFolder}\\src\\generate-cert.ps1",
+            "cwd": "${workspaceRoot}",
+            "args": [ "-hostname \"dev-example\" -domain \"contoso.com\" -prefixName \"0001\" -password \"Pa$$word\"" ],
+        }
+    ]
+}

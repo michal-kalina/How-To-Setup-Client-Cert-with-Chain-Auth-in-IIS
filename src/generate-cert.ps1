@@ -1,31 +1,35 @@
 [CmdletBinding()]
 Param
 ( 
-    [Parameter(Mandatory=$true)]
-    [String] $hostname, #dev-example
-    [Parameter(Mandatory=$true)]
-    [String] $domain, #contoso.com
-    [Parameter(Mandatory=$false)]
-    [String] $profixNmae # ####-
-    [Parameter(Mandatory=$true)]
+    [Parameter(Mandatory=$true, HelpMessage="The Hostname of a Server on which IIS hosts web application - e.g. dev-example.")]
+    [String] $hostname,
+    [Parameter(Mandatory=$true, HelpMessage="Domain to which belogs the Hostname - e.g. contoso.com.")]
+    [String] $domain,
+    [Parameter(Mandatory=$false, HelpMessage="(Optional) a prefix which can be use to destinguish generated certificates - e.g. OOO1.")]
+    [String] $prefixName,
+    [Parameter(Mandatory=$true, HelpMessage="A password which will be used to generate certificates")]
     [String] $password
 )
 
-Import-Module Cert-Helpers -Function Read-Certificate, Remove-Certificate, Create-Certificate, Create-PfxCertificate
+. $PSScriptRoot\Cert-Helpers\Cert-Helpers.ps1
 
 $outDir = "$PSScriptRoot\Out"
 $test = Test-Path -Path $outDir
 if (!$test) {
     New-Item -ItemType Directory -Path $outDir
 } else {
-    Get-ChildItem -Path $outDir -Include *.* -File -Recurse | foreach { $_.Delete()}
+    Get-ChildItem -Path $outDir -Include *.* -File -Recurse | ForEach-Object { $_.Delete()}
 }
 
 # Root Cert
 $rootCert = Read-Certificate -store 'Cert:\LocalMachine\My' -subject "$hostname.root"
-Remove-Certificate -store 'Cert:\LocalMachine\My' -certs $rootCert
+if($rootCert) {
+   Remove-Certificate -store 'Cert:\LocalMachine\My' -certs $rootCert
+}
 $rootCert = Read-Certificate -store 'Cert:\LocalMachine\Root' -subject "$hostname.root"
-Remove-Certificate -store 'Cert:\LocalMachine\Root' -certs $rootCert
+if($rootCert) {
+   Remove-Certificate -store 'Cert:\LocalMachine\Root' -certs $rootCert
+}
 
 $params = @{
    Subject = "$hostname.root"
@@ -47,14 +51,18 @@ $params = @{
    )
 }
 
-$rootCert = Create-Certificate -args $params -path "$outDir\$profixNmaeRootCertificate.crt"
+$rootCert = Create-Certificate -args $params -path "$outDir\$($prefixName)RootCertificate.crt"
 
 
 # Intermidate Cert
 $interCert = Read-Certificate -store 'Cert:\LocalMachine\My' -subject "$hostname.inter"
-Remove-Certificate -store 'Cert:\LocalMachine\My' -certs $interCert
+if($interCert) {
+   Remove-Certificate -store 'Cert:\LocalMachine\My' -certs $interCert
+}
 $interCert = Read-Certificate -store 'Cert:\LocalMachine\My' -subject "$hostname.inter"
-Remove-Certificate -store 'Cert:\LocalMachine\CA' -certs $interCert
+if($interCert) {
+   Remove-Certificate -store 'Cert:\LocalMachine\CA' -certs $interCert
+}
 
 
 $params = @{
@@ -78,13 +86,15 @@ $params = @{
    )
 }
 
-$interCert = Create-Certificate -args $params -path "$outDir\$profixNmaeIntermediateCertificate.crt"
+$interCert = Create-Certificate -args $params -path "$outDir\$($prefixName)IntermediateCertificate.crt"
 
 
 
 # Server Cert
 $serverCert = Read-Certificate -store 'Cert:\LocalMachine\My' -subject "$hostname.$domain"
-Remove-Certificate -store 'Cert:\LocalMachine\My' -certs $serverCert
+if($serverCert) {
+   Remove-Certificate -store 'Cert:\LocalMachine\My' -certs $serverCert
+}
 
 $params = @{
    Subject = "CN=$hostname, CN=*.$domain, CN=$hostname.$domain"
@@ -107,13 +117,15 @@ $params = @{
    )
 }
 
-$serverCert = Create-PfxCertificate -args $params -path "$outDir\$profixNmaeServerCertificate.crt" -pathPfx "$outDir\$profixNmaeServerCertificate.pfx" -password $password
+$serverCert = Create-PfxCertificate -args $params -path "$outDir\$($prefixName)ServerCertificate.crt" -pathPfx "$outDir\$($prefixName)ServerCertificate.pfx" -password $password
 
 
 
 # Client Cert
 $clientCert = Read-Certificate -store 'Cert:\CurrentUser\My' -subject "$hostname.$domain"
-Remove-Certificate -store 'Cert:\CurrentUser\My' -certs $clientCert
+if($clientCert) {
+   Remove-Certificate -store 'Cert:\CurrentUser\My' -certs $clientCert
+}
 
 $params = @{
    Subject = "CN=$hostname, CN=*.$domain, CN=$hostname.$domain"
@@ -136,24 +148,16 @@ $params = @{
    )
 }
 
-$clientCert = Create-PfxCertificate -args $params -path "$outDir\$profixNmaeClientCertificate.crt" -pathPfx "$outDir\$profixNmaeClientCertificate.pfx" -password $password
+$clientCert = Create-PfxCertificate -args $params -path "$outDir\$($prefixName)ClientCertificate.crt" -pathPfx "$outDir\$($prefixName)ClientCertificate.pfx" -password $password
 
 # Move certs between stores and remove leftovers
 Move-Item (Join-Path 'Cert:\LocalMachine\My' $rootCert.Thumbprint) -Destination 'Cert:\LocalMachine\Root' | Out-Null
 
 $cert = Read-Certificate -store 'Cert:\LocalMachine\CA' -subject "$hostname.root"
-Remove-Certificate -store 'Cert:\LocalMachine\CA' -certs $cert
+if($cert) {
+   Remove-Certificate -store 'Cert:\LocalMachine\CA' -certs $cert
+}
 
 Move-Item (Join-Path 'Cert:\LocalMachine\My' $interCert.Thumbprint) -Destination 'Cert:\LocalMachine\CA' | Out-Null
 
 #Remove-Certificate -store 'Cert:\LocalMachine\My' -certs $interCert
-
-
-#& certutil.exe -encode "$outDir\CUST-75491-ClientCertificate.crt" "$outDir\CUST-75491-ClientCertificate_base64.crt"
-
-Get-Website -Name "wpm-test-page"
-
-#Run cmd as admin
-#netsh http show sslcert
-#netsh http delete sslcert hostnameport=dev-kra-mkal-03.aad2.lab:443
-#netsh http add sslcert hostnameport=dev-kra-mkal-03.aad2.lab:443 certhash=a32a516e5c999ce07f0f2e9a3fb5bcd247857f8b appid={4dc3e181-e14b-4a21-b022-59fc669b0914} certstorename=MY verifyclientcertrevocation=enable VerifyRevocationWithCachedClientCertOnly=disable UsageCheck=enable clientcertnegotiation=enable

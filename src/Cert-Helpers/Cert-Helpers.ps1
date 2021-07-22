@@ -17,6 +17,7 @@ function Remove-Certificate {
         [Parameter(Mandatory=$true)]
         [System.String] $store, 
         [Parameter(Mandatory=$true)]
+        [AllowNull()]
         $certs
     )
     $certs | % {
@@ -65,5 +66,3 @@ function Create-PfxCertificate() {
 
     return $selfSignedCert
 }
-
-Export-ModuleMember -Function  Read-Certificate, Remove-Certificate, Create-Certificate, Create-PfxCertificate
