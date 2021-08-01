@@ -1,4 +1,4 @@
-# How to setup client certificate which certificate chain Authentication in IIS
+# How to setup client certificate with certificate chain Authentication in IIS
 
 ## Prerequisites
 * Windows Server 2016 or above with installed:
